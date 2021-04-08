@@ -12,10 +12,10 @@ module.exports = function (config) {
 				    dest = path.join(config.dest, f.name);
 
 				if (f.exists) {
-					console.log('[copy]', src, '->', dest);
+					if (!config.silent) console.log('[copy]', src, '->', dest);
 					fs.copy(src, dest);
 				} else {
-					console.log('[delete]', dest);
+					if (!config.silent) console.log('[delete]', dest);
 					fs.remove(dest);
 				}
 			}

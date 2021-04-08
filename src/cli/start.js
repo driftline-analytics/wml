@@ -12,11 +12,18 @@ var watchman = require('fb-watchman');
 var links = require('../links.js');
 var copyHandler = require('../handlers/copy.js');
 
+var silent = false;
+
 exports.command = 'start';
 
 exports.describe = 'Starts watching all links';
 
-exports.builder = {};
+exports.builder = {
+	'silent': {
+		default: false,
+		describe: 'Skips all output'
+	}
+};
 
 function onLinksChange(onChange, resp) {
 	var hasLinksChanged = resp.files.some(function (file) {
@@ -63,10 +70,10 @@ function startWatcher(link, linkId) {
 	}).then((resp) => {
 
 		if ('warning' in resp) {
-			console.log('[watch-warning]'.yellow, resp.warning);
+			if (!silent) console.log('[watch-warning]'.yellow, resp.warning);
 		}
 
-		console.log('[watch]'.green, resp.watch);
+		if (!silent) console.log('[watch]'.green, resp.watch);
 
 		relativePath = resp.relative_path;
 		watch = resp.watch;
@@ -78,7 +85,7 @@ function startWatcher(link, linkId) {
 
 	}).then((resp) => {
 
-		console.log('[watch-config]'.green, resp.config);
+		if (!silent) console.log('[watch-config]'.green, resp.config);
 
 		return subscribe({
 			client: client,
@@ -87,12 +94,13 @@ function startWatcher(link, linkId) {
 			src: link.src,
 			handler: copyHandler({
 				src: link.src,
-				dest: link.dest
+				dest: link.dest,
+				silent: silent,
 			})
 		});
 
 	}).then(() => {
-		console.log('[subscribe]'.green, link.src);
+		if (!silent) console.log('[subscribe]'.green, link.src);
 	}, (err) => {
 
 		client.end();
@@ -101,7 +109,7 @@ function startWatcher(link, linkId) {
 			? err.watchmanResponse.error
 			: err;
 
-		console.log('[error]'.red, error);
+		if (!silent) console.log('[error]'.red, error);
 
 		throw err;
 
@@ -112,7 +120,7 @@ function startWatcher(link, linkId) {
 
 function stopWatcher(watcher, src, dest) {
 	watcher.end();
-	console.log('[end]'.green, src, '->' , dest);
+	if (!silent) console.log('[end]'.green, src, '->' , dest);
 }
 
 function updateWatchers() {
@@ -145,6 +153,7 @@ function updateWatchers() {
 	}
 }
 
-exports.handler = () => {
+exports.handler = (argv) => {
+	silent = argv.silent;
 	watchForLinkChanges(updateWatchers);
 };
